@@ -35,6 +35,12 @@ function handleKeyPress(event) {
         case 'ArrowRight':
             movePieceRight();
             break;
+        case 'ArrowUp': // Permitir rotar la pieza a la derecha
+            rotatePieceRigth();
+            break;
+        case 'ArrowDown': // Permitir rotar la pieza a la izquierda
+            rotatePieceLeft();
+            break;
         case ' ':
             dropPieceInstantly();
             break;
@@ -62,7 +68,7 @@ function dropPieceInstantly() {
     currentPiecePosition.y--; // Retrocede una posición
     merge();
     clearLines();
-    spawnPiece();
+    spawnPiece(); // Esta línea se eliminará para permitir que la pieza caiga al final
 }
 
 function drawBoard() {
@@ -94,21 +100,52 @@ function spawnPiece() {
     currentPiecePosition = { x: Math.floor(COLS / 2) - Math.floor(currentPiece[0].length / 2), y: 0 };
 
     // Verificar si la nueva pieza colisiona al generarse en la parte superior
-    if (collisionAtCurrentPosition()) {
+    if (collision() || collisionWithCeiling()) { // Ahora incluye collisionWithCeiling
         isGameRunning = false; // Detener el juego
         alert("You lose!"); // Mostrar el mensaje de pérdida
         clearInterval(gameInterval); // Detener el intervalo de actualización
     }
 }
 
-// Nueva función para verificar colisión en la posición actual de la pieza
-function collisionAtCurrentPosition() {
+// Nueva función para verificar colisión con el techo
+function collisionWithCeiling() {
     return currentPiece.some((row, r) =>
         row.some((value, c) =>
+            value && (currentPiecePosition.y + r < 0)
+        )
+    );
+}
+
+// Función para verificar colisión en una posición dada
+function collisionAtPosition(piece, position) {
+    return piece.some((row, r) =>
+        row.some((value, c) =>
             value &&
-            (board[currentPiecePosition.y + r] &&
-                board[currentPiecePosition.y + r][currentPiecePosition.x + c]) !== 0)
-    )
+            (board[position.y + r] &&
+                board[position.y + r][position.x + c]) !== 0)
+    );
+}
+
+function collision() {
+    return collisionAtPosition(currentPiece, currentPiecePosition) || collisionWithCeiling();
+}
+
+function rotatePieceRigth() {
+    const rotatedPiece = currentPiece[0].map((_, index) => currentPiece.map(row => row[index]).reverse());
+
+    // Verifica si la nueva posición de la pieza rota es válida
+    if (!collisionAtPosition(rotatedPiece, currentPiecePosition)) {
+        currentPiece = rotatedPiece; // Solo actualizar la pieza si no hay colisión
+    }
+}
+
+function rotatePieceLeft() {
+    const rotatedPiece = currentPiece[0].map((_, index) => currentPiece.map(row => row[index])).reverse();
+
+    // Verifica si la nueva posición de la pieza rota es válida
+    if (!collisionAtPosition(rotatedPiece, currentPiecePosition)) {
+        currentPiece = rotatedPiece; // Solo actualizar la pieza si no hay colisión
+    }
 }
 
 
@@ -129,12 +166,6 @@ function update() {
     }
     drawBoard();
     drawPiece(currentPiece, currentPiecePosition);
-}
-
-function collision() {
-    return currentPiece.some((row, r) =>
-        row.some((value, c) => value && (board[currentPiecePosition.y + r] && board[currentPiecePosition.y + r][currentPiecePosition.x + c]) !== 0)
-    );
 }
 
 function merge() {
